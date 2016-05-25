@@ -17,8 +17,8 @@ if (argv.h) {
     process.exit(0);
 }
 
-var localParsed = argv.p.split(':'),
-    targetParsed = argv.t.split(':'),
+var localParsed = (argv.p + '').split(':'),
+    targetParsed = (argv.t + '').split(':'),
     localPort = localParsed[localParsed.length - 1],
     localHost = localParsed.length > 1 ? localParsed[0] : '0.0.0.0',
     targetHost = targetParsed[0],
