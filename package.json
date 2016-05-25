@@ -1,0 +1,30 @@
+{
+  "name": "socket-pipe",
+  "version": "1.0.0",
+  "description": "Socket Pipe",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joyqi/socket-pipe.git"
+  },
+  "bin": {
+    "socket-pipe": "./bin/socket-pipe"
+  },
+  "preferGlobal": true,
+  "keywords": [
+    "socket",
+    "pipe"
+  ],
+  "author": "joyqi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/joyqi/socket-pipe/issues"
+  },
+  "homepage": "https://github.com/joyqi/socket-pipe#readme",
+  "dependencies": {
+    "optimist": "^0.6.1"
+  }
+}
