@@ -17,18 +17,29 @@ if (argv.h) {
     process.exit(0);
 }
 
-var parsed = argv.t.split(':'),
-    host = parsed[0],
-    port = parsed.length > 1 ? parsed[1] : argv.p;
+var localParsed = argv.p.split(':'),
+    targetParsed = argv.t.split(':'),
+    localPort = localParsed[localParsed.length - 1],
+    localHost = localParsed.length > 1 ? localParsed[0] : '0.0.0.0',
+    targetHost = targetParsed[0],
+    targetPort = targetParsed.length > 1 ? targetParsed[1] : argv.p;
 
 var server = Net.Server(function (client) {
-    var socket = Net.connect(port, host);
+    var socket = Net.connect(targetPort, targetHost);
     client.pipe(socket).pipe(client);
     
     console.log("Connecting " + client.remoteAddress 
         + ":" + client.remotePort);
+
+    client.on('error', function (err) {
+        console.log("Error " + err);
+    });
 });
 
-server.listen(argv.p);
-console.log("Listening at port " + argv.p);
+server.listen(localPort, localHost);
+console.log("Listening at " + argv.p);
+
+server.on('error', function (err) {
+    console.log("Error " + err);
+});
 
