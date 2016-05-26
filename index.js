@@ -33,6 +33,11 @@ function parsePort(port) {
         return parseInt(port);
     }
 
+    if ((port + '').match(/^[0-9]+\-[0-9]+$/i)) {
+        parsed = (port + '').split('-');
+        return [parseInt(parsed[0]), parseInt(parsed[1])];
+    }
+
     console.log(port + ' is not a valid port number.');
     process.exit(1);
 }
@@ -77,6 +82,14 @@ function requestUdpSocket(info) {
     }
     
     return connectionPool[key].socket;
+}
+
+function requestUdpPort(port) {
+    if (port instanceof Array) {
+        return Math.floor(Math.random() * (port[1] - port[0] + 1)) + port[0];
+    } else {
+        return port;
+    }
 }
 
 // connection collect
@@ -145,7 +158,7 @@ if (argv.t == 'tcp') {
         console.log("Request " + client.address
             + "@" + client.port);
 
-        sender.send(data, 0, data.length, remoteAddress.port, remoteAddress.ip);
+        sender.send(data, 0, data.length, requestUdpPort(remoteAddress.port), remoteAddress.ip);
     });
 }
 
