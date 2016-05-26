@@ -35,7 +35,7 @@ function parsePort(port) {
 
 // parse and validate ip address
 function parseAddress(address) {
-    var parsed = (address + '').split(':'),
+    var parsed = (address + '').split('@'),
         result = {};
 
     if (parsed.length > 1) {
@@ -113,6 +113,6 @@ if (argv.t == 'tcp') {
 }
 
 
-console.log("Piping " + localAddress.ip + ":" + localAddress.port 
-    + " to " + remoteAddress.ip + ":" + remoteAddress.port + " via " + argv.t);
+console.log("Piping " + localAddress.ip + "@" + localAddress.port 
+    + " to " + remoteAddress.ip + "@" + remoteAddress.port + " via " + argv.t);
 
