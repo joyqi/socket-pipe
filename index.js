@@ -101,8 +101,8 @@ setInterval(function () {
     for (var i = 0; i < index; i ++) {
         var connection = connectionPool.shift();
 
-        connection.socket.close();
         console.log("Close " + connection.socket.address());
+        connection.socket.close();
 
     }
 }, 5000);
