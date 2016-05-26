@@ -25,7 +25,7 @@ if (argv.h) {
 
 var localAddress = parseAddress(argv.l),
     remoteAddress = parseAddress(argv.r),
-    connectionPool = {};
+    connectionPool = [];
 
 // parse and validate port number
 function parsePort(port) {
@@ -64,24 +64,19 @@ function parseAddress(address) {
 }
 
 // request a udp socket from pool
-function requestUdpSocket(info) {
-    var key = info.address + '@' + info.port,
-        now = Date.now();
-
-    if (connectionPool[key]) {
-        connectionPool[key].time = now;
-    } else {
-        var socket = Udp.createSocket('udp' + remoteAddress.type);
-        socket.bind();
-
-        socket.on('error', function (err) {
-            console.log("Error " + err);
-        });
-
-        connectionPool[key] = {time : now, socket : socket};
-    }
+function requestUdpSocket() {
+    var now = Date.now(),
+        socket = Udp.createSocket('udp' + remoteAddress.type);
     
-    return connectionPool[key].socket;
+    socket.bind();
+
+    socket.on('error', function (err) {
+        console.log("Error " + err);
+    });
+
+    connectionPool.push({time : now, socket : socket});
+    
+    return socket;
 }
 
 function requestUdpPort(port) {
@@ -96,21 +91,19 @@ function requestUdpPort(port) {
 setInterval(function () {
     var now = Date.now(), expires = [];
 
-    for (var key in connectionPool) {
-        var connection = connectionPool[key];
+    for (var index = 0; index < connectionPool.length; index ++) {
 
-        if (now - connection.time > 5000) {
-            expires.push(key);
+        if (now - connection.time < 5000) {
+            break;
         }
     }
 
-    for (var i = 0; i < expires.length; i ++) {
-        var key = expires[i];
+    for (var i = 0; i < index; i ++) {
+        var connection = connectionPool.shift();
 
-        connectionPool[key].socket.close();
-        delete connectionPool[key];
+        connection.socket.close();
+        console.log("Close " + connection.socket.address());
 
-        console.log("Close " + key);
     }
 }, 5000);
 
@@ -145,7 +138,7 @@ if (argv.t == 'tcp') {
     }); 
 
     receiver.on('message', function (data, info) {
-        var sender = requestUdpSocket(info),
+        var sender = requestUdpSocket(),
             client = info;
 
         sender.on('message', function (data, info) {
