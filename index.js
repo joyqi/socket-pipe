@@ -93,7 +93,7 @@ setInterval(function () {
 
     for (var index = 0; index < connectionPool.length; index ++) {
 
-        if (now - connection.time < 5000) {
+        if (now - connectionPool[index].time < 10000) {
             break;
         }
     }
