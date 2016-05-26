@@ -11,7 +11,7 @@ npm install -g socket-pipe
 ## Usage
 
 ```
-socket-pipe -l 127.0.0.1@53 -h 8.8.8.8@53 -t udp
+socket-pipe -l 127.0.0.1@53 -r 8.8.8.8@53 -t udp
 ```
 
 ## Example
