@@ -1,6 +1,6 @@
 {
   "name": "socket-pipe",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "description": "Socket Pipe",
   "main": "index.js",
   "scripts": {

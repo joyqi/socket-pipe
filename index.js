@@ -101,7 +101,8 @@ setInterval(function () {
     for (var i = 0; i < index; i ++) {
         var connection = connectionPool.shift();
 
-        console.log("Close " + connection.socket.address());
+        console.log("Close " + connection.socket.address().address + '@'
+            + connection.socket.address().port);
         connection.socket.close();
 
     }
