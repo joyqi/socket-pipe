@@ -23,6 +23,10 @@ if (argv.h) {
     process.exit(0);
 }
 
+var localAddress = parseAddress(argv.l),
+    remoteAddress = parseAddress(argv.r),
+    connectionPool = {};
+
 // parse and validate port number
 function parsePort(port) {
     if ((port + '').match(/^[0-9]+$/i)) {
@@ -54,16 +58,57 @@ function parseAddress(address) {
     return result;
 }
 
-var localAddress = parseAddress(argv.l),
-    remoteAddress = parseAddress(argv.r);
+// request a udp socket from pool
+function requestUdpSocket(info) {
+    var key = info.address + '@' + info.port,
+        now = Date.now();
+
+    if (connectionPool[key]) {
+        connectionPool[key].time = now;
+    } else {
+        var socket = Udp.createSocket('udp' + remoteAddress.type);
+        socket.bind();
+
+        socket.on('error', function (err) {
+            console.log("Error " + err);
+        });
+
+        connectionPool[key] = {time : now, socket : socket};
+    }
+    
+    return connectionPool[key].socket;
+}
+
+// connection collect
+setInterval(function () {
+    var now = Date.now(), expires = [];
+
+    for (var key in connectionPool) {
+        var connection = connectionPool[key];
+
+        if (now - connection.time > 5000) {
+            expires.push(key);
+        }
+    }
+
+    for (var i = 0; i < expires.length; i ++) {
+        var key = expires[i];
+
+        connectionPool[key].socket.close();
+        delete connectionPool[key];
+
+        console.log("Close " + key);
+    }
+}, 5000);
 
 if (argv.t == 'tcp') {
+    // tcp pipe
     var server = Net.Server(function (client) {
         var socket = Net.connect(remoteAddress.port, remoteAddress.ip);
         client.pipe(socket).pipe(client);
     
         console.log("Request " + client.remoteAddress 
-            + ":" + client.remotePort);
+            + "@" + client.remotePort);
 
         client.on('error', function (err) {
             console.log("Error " + err);
@@ -76,39 +121,31 @@ if (argv.t == 'tcp') {
         console.log("Error " + err);
     });
 } else {
-    var receiver = Udp.createSocket('udp' + localAddress.type),
-        sender = Udp.createSocket('udp' + remoteAddress.type),
-        client = null;
+    // udp pipe
+    var receiver = Udp.createSocket('udp' + localAddress.type);
 
     receiver.bind(localAddress.port, localAddress.ip);
     receiver.ref();
-    sender.bind();
-    sender.ref();
 
     receiver.on('error', function (err) {
         console.log("Error " + err);
-    });
-    
-    sender.on('error', function (err) {
-        console.log("Error " + err);
-    });
+    }); 
 
     receiver.on('message', function (data, info) {
-        client = info;
+        var sender = requestUdpSocket(info),
+            client = info;
+
+        sender.on('message', function (data, info) {
+            console.log("Response " + info.address
+                + "@" + info.port);
+
+            receiver.send(data, 0, data.length, client.port, client.address);
+        });
 
         console.log("Request " + client.address
-            + ":" + client.port);
+            + "@" + client.port);
 
         sender.send(data, 0, data.length, remoteAddress.port, remoteAddress.ip);
-    });
-
-    sender.on('message', function (data, info) {
-        console.log("Response " + info.address
-            + ":" + info.port);
-
-        if (client) {
-            receiver.send(data, 0, data.length, client.port, client.address);
-        }
     });
 }
 
