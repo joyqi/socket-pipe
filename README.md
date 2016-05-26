@@ -17,12 +17,5 @@ socket-pipe -l 127.0.0.1@53 -h 8.8.8.8@53 -t udp
 ## Example
 
 ```
-
-+-------+
-|
-|client
-|127.0.0.1
-
-
-
+[Client 127.0.0.1:XXXX] <====> [socket-pipe 192.168.1.20:53] <===> ... [socket-pipe] x n ... <===> [Server 8.8.8.8:53]
 ```
