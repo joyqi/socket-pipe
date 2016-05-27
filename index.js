@@ -93,7 +93,7 @@ setInterval(function () {
 
     for (var index = 0; index < connectionPool.length; index ++) {
 
-        if (now - connectionPool[index].time < 10000) {
+        if (now - connectionPool[index].time < 5000) {
             break;
         }
     }
@@ -106,7 +106,7 @@ setInterval(function () {
         connection.socket.close();
 
     }
-}, 5000);
+}, 3000);
 
 if (argv.t == 'tcp') {
     // tcp pipe
