@@ -1,7 +1,8 @@
 
 var Opt = require('optimist'),
     Net = require('net'),
-    Udp = require('dgram');
+    Udp = require('dgram')
+    Event = require('events');
 
 
 var argv = Opt
@@ -24,8 +25,7 @@ if (argv.h) {
 }
 
 var localAddress = parseAddress(argv.l),
-    remoteAddress = parseAddress(argv.r),
-    connectionPool = [];
+    remoteAddress = parseAddress(argv.r);
 
 // parse and validate port number
 function parsePort(port) {
@@ -63,99 +63,8 @@ function parseAddress(address) {
     return result;
 }
 
-// request a udp socket from pool
-function requestUdpSocket() {
-    var now = Date.now(),
-        socket = Udp.createSocket('udp' + remoteAddress.type);
-    
-    socket.bind();
-
-    socket.on('error', function (err) {
-        console.log("Error " + err);
-    });
-
-    connectionPool.push({time : now, socket : socket});
-    
-    return socket;
-}
-
-function requestUdpPort(port) {
-    if (port instanceof Array) {
-        return Math.floor(Math.random() * (port[1] - port[0] + 1)) + port[0];
-    } else {
-        return port;
-    }
-}
-
-// connection collect
-setInterval(function () {
-    var now = Date.now(), expires = [];
-
-    for (var index = 0; index < connectionPool.length; index ++) {
-
-        if (now - connectionPool[index].time < 5000) {
-            break;
-        }
-    }
-
-    for (var i = 0; i < index; i ++) {
-        var connection = connectionPool.shift();
-
-        console.log("Close " + connection.socket.address().address + '@'
-            + connection.socket.address().port);
-        connection.socket.close();
-
-    }
-}, 3000);
-
-if (argv.t == 'tcp') {
-    // tcp pipe
-    var server = Net.Server(function (client) {
-        var socket = Net.connect(remoteAddress.port, remoteAddress.ip);
-        client.pipe(socket).pipe(client);
-    
-        console.log("Request " + client.remoteAddress 
-            + "@" + client.remotePort);
-
-        client.on('error', function (err) {
-            console.log("Error " + err);
-        });
-    });
-
-    server.listen(localAddress.port, localAddress.ip);
-
-    server.on('error', function (err) {
-        console.log("Error " + err);
-    });
-} else {
-    // udp pipe
-    var receiver = Udp.createSocket('udp' + localAddress.type);
-
-    receiver.bind(localAddress.port, localAddress.ip);
-    receiver.ref();
-
-    receiver.on('error', function (err) {
-        console.log("Error " + err);
-    }); 
-
-    receiver.on('message', function (data, info) {
-        var sender = requestUdpSocket(),
-            client = info;
-
-        sender.on('message', function (data, info) {
-            console.log("Response " + info.address
-                + "@" + info.port);
-
-            receiver.send(data, 0, data.length, client.port, client.address);
-        });
-
-        console.log("Request " + client.address
-            + "@" + client.port);
-
-        sender.send(data, 0, data.length, requestUdpPort(remoteAddress.port), remoteAddress.ip);
-    });
-}
-
+Adapter = require('./build/' + argv.t);
+new Adapter(localAddress, remoteAddress);
 
 console.log("Piping " + localAddress.ip + "@" + localAddress.port 
     + " to " + remoteAddress.ip + "@" + remoteAddress.port + " via " + argv.t);
