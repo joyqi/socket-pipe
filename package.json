@@ -25,6 +25,8 @@
   },
   "homepage": "https://github.com/joyqi/socket-pipe#readme",
   "dependencies": {
-    "optimist": "^0.6.1"
+    "node-uuid": "^1.4.7",
+    "optimist": "^0.6.1",
+    "request": "^2.74.0"
   }
 }
