@@ -4,7 +4,7 @@ TClient = require './tclient'
 
 module.exports = class extends TClient
 
-    constructor: (@localAddress, @remoteAddress, @transfer) ->
+    constructor: (@localAddress, @remoteAddress, @transfer, @specify) ->
         @createDaemonSocket()
         @hash = null
  
@@ -12,14 +12,15 @@ module.exports = class extends TClient
     createDaemonSocket: ->
         ping = Buffer.from [0]
 
-        if @transfer?
-            console.log @transfer
-            tmp = new Buffer @transfer
-            first = new Buffer 1 + tmp.length
-            first.writeInt8 1, 0
-            tmp.copy first, 1
-        else
-            first = Buffer.from [1]
+        @transfer = '' if not @transfer?
+        @specify = '' if not @specify?
+        parts = @transfer + '|' + @specify
+
+        console.log parts
+        tmp = new Buffer parts
+        first = new Buffer 1 + tmp.length
+        first.writeInt8 1, 0
+        tmp.copy first, 1
 
         @daemonSocket = @connectRemote =>
             connected = no

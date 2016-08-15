@@ -11,26 +11,30 @@
   module.exports = (function(superClass) {
     extend(_Class, superClass);
 
-    function _Class(localAddress, remoteAddress, transfer) {
+    function _Class(localAddress, remoteAddress, transfer, specify) {
       this.localAddress = localAddress;
       this.remoteAddress = remoteAddress;
       this.transfer = transfer;
+      this.specify = specify;
       this.createDaemonSocket();
       this.hash = null;
     }
 
     _Class.prototype.createDaemonSocket = function() {
-      var first, ping, tmp;
+      var first, parts, ping, tmp;
       ping = Buffer.from([0]);
-      if (this.transfer != null) {
-        console.log(this.transfer);
-        tmp = new Buffer(this.transfer);
-        first = new Buffer(1 + tmp.length);
-        first.writeInt8(1, 0);
-        tmp.copy(first, 1);
-      } else {
-        first = Buffer.from([1]);
+      if (this.transfer == null) {
+        this.transfer = '';
       }
+      if (this.specify == null) {
+        this.specify = '';
+      }
+      parts = this.transfer + '|' + this.specify;
+      console.log(parts);
+      tmp = new Buffer(parts);
+      first = new Buffer(1 + tmp.length);
+      first.writeInt8(1, 0);
+      tmp.copy(first, 1);
       this.daemonSocket = this.connectRemote((function(_this) {
         return function() {
           var connected;

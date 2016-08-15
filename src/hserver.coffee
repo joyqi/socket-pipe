@@ -5,10 +5,12 @@ Http = require 'http'
 UUID = require 'node-uuid'
 Request = require 'request'
 Transform = (require 'stream').Transform
+Zlib = require 'zlib'
 
 pregQuote = (str) -> str.replace /[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"
 
 class ProxyStream extends Transform
+
 
     setFrom: (from) ->
         @from = new RegExp (pregQuote from), 'ig'
@@ -18,33 +20,28 @@ class ProxyStream extends Transform
 
 
     setStatusCode: (statusCode) ->
-        console.log statusCode
         @res.statusCode = statusCode
-
-
-    setStatusMessage: (statusMessage) ->
-        @res.statusMessage = statusMessage
-
-
-    writeHead: (k, v) ->
-        console.log k, v
 
     
     setHeader: (k, v) ->
-        @res.setHeader k, if k == 'location' then (v.replace @from, @to) else v
+        @res.setHeader k, if k == 'location' then (@replace v) else v
 
 
-    pipe: (res) ->
-        @res = res
+    pipe: (@res) ->
         super
 
     
-    _transform: (buff, encoding, callback) ->
+    replace: (input) ->
+        if Buffer.isBuffer input
+            str = input.toString 'utf8'
+            Buffer.from (@replace str), 'utf8'
+        else
+            input.replace @from, @to
+
+    
+    _transform: (buff, enc, callback) ->
         callback null, buff
 
-
-Object.defineProperty ProxyStream, 'statusCode', set: ProxyStream.setStatusCode
-Object.defineProperty ProxyStream, 'statusMessage', set: ProxyStream.setStatusMessage
 
 module.exports = class
 
@@ -75,6 +72,8 @@ module.exports = class
             transform = new ProxyStream
             transform.setFrom host
             transform.setTo @sockets[uuid][0].headers.host
+
+            Object.defineProperty transform, 'statusCode', set: transform.setStatusCode
 
             @sockets[uuid][0]
                 .pipe Request[method] url
@@ -126,9 +125,10 @@ module.exports = class
                     op = data.readInt8 0
 
                     if op == 1
-                        transfer = if data.length > 1 then (data.slice 1).toString() else null
-                        #hash = UUID.v1()
-                        hash = 'portal'
+                        parts = (data.slice 1).toString()
+                        [transfer, hash] = parts.split '|'
+                        hash = UUID.v1() if hash.length == 0 or @daemonSockets[hash]?
+                        transfer = null if transfer.length == 0
                         console.info "connected #{socket.remoteAddress}:#{socket.remotePort} = #{hash} #{transfer}"
                         @daemonSockets[hash] = [socket, transfer]
 

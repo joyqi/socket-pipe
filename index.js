@@ -14,11 +14,13 @@ var argv = Opt
     .alias('l', 'local')
     .alias('r', 'remote')
     .alias('x', 'transfer')
+    .alias('s', 'specify')
     .default('t', 'tcp')
     .describe('l', 'Local address.')
     .describe('r', 'Remote address.')
     .describe('t', 'Socket type.')
     .describe('x', 'Transfer option.')
+    .describe('s', 'Specify option.')
     .argv;
 
 if (argv.h) {
@@ -66,7 +68,7 @@ function parseAddress(address) {
 }
 
 Adapter = require('./build/' + argv.t);
-new Adapter(localAddress, remoteAddress, argv.x);
+new Adapter(localAddress, remoteAddress, argv.x, argv.s);
 
 console.log("Piping " + localAddress.ip + "@" + localAddress.port 
     + " to " + remoteAddress.ip + "@" + remoteAddress.port + " via " + argv.t);
