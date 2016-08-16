@@ -55,14 +55,15 @@
       return ProxyStream.__super__.pipe.apply(this, arguments);
     };
 
-    ProxyStream.prototype.resume = function() {
-      var buffer;
+    ProxyStream.prototype.release = function() {
+      var buffer, results;
       if (this.stream != null) {
+        results = [];
         while (buffer = this.buffers.shift()) {
-          this.stream.write(buffer);
+          results.push(this.stream.write(buffer));
         }
+        return results;
       }
-      return ProxyStream.__super__.resume.apply(this, arguments);
     };
 
     ProxyStream.prototype.callback = function(err, buff) {
@@ -142,9 +143,9 @@
             console.info("request pipe " + uuid);
             _this.daemonSockets[hash][0].write(buff);
             setTimeout(function() {
-              console.info("retry pipe " + uuid);
               if (_this.pipes[uuid] == null) {
-                return _this.daemonSockets[hash][0].write(buff);
+                _this.daemonSockets[hash][0].write(buff);
+                return console.info("retry pipe " + uuid);
               }
             }, 2000);
             regex = new RegExp(pregQuote(reqHost), 'ig');
@@ -171,7 +172,7 @@
             return endSocket(_this.sockets[uuid]);
           }
           _this.sockets[uuid][1].pipe(_this.pipes[uuid]).pipe(_this.sockets[uuid][2]).pipe(_this.sockets[uuid][0]);
-          _this.sockets[uuid][1].resume();
+          _this.sockets[uuid][1].release();
           return _this.sockets[uuid][0].resume();
         };
       })(this));

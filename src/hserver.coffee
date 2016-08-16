@@ -37,12 +37,10 @@ class ProxyStream extends Transform
         return super
 
 
-    resume: ->
+    release: ->
         if @stream?
             while buffer = @buffers.shift()
                 @stream.write buffer
-
-        super
 
 
     callback: (err, buff) ->
@@ -115,8 +113,9 @@ module.exports = class
                 @daemonSockets[hash][0].write buff
 
                 setTimeout =>
-                    console.info "retry pipe #{uuid}"
-                    @daemonSockets[hash][0].write buff if not @pipes[uuid]?
+                    if not @pipes[uuid]?
+                        @daemonSockets[hash][0].write buff
+                        console.info "retry pipe #{uuid}"
                 , 2000
 
                 regex = new RegExp (pregQuote reqHost), 'ig'
@@ -142,7 +141,7 @@ module.exports = class
                 .pipe @sockets[uuid][2]
                 .pipe @sockets[uuid][0]
 
-            @sockets[uuid][1].resume()
+            @sockets[uuid][1].release()
             @sockets[uuid][0].resume()
         
         @createLocalServer()
