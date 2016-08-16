@@ -9,7 +9,9 @@ Zlib = require 'zlib'
 
 pregQuote = (str) -> str.replace /[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"
 
-endSocket = (socket) -> socket.end "HTTP/1.1 404 Not Found\r\nContent-Type: text/html;charset=UTF-8\r\n\r\nNotFound"
+endSocket = (socket) ->
+    socket.resume()
+    socket.end "HTTP/1.1 404 Not Found\r\nContent-Type: text/html;charset=UTF-8\r\n\r\nNotFound"
 
 class ProxyStream extends Transform
 
@@ -99,6 +101,8 @@ module.exports = class
             @sockets[uuid].push input
 
             input.setCallback (reqHost, head) =>
+                console.info "request #{reqHost}"
+
                 [hash] = reqHost.split '.'
                 if not @daemonSockets[hash]?
                     return endSocket @sockets[uuid][0]
@@ -107,6 +111,10 @@ module.exports = class
                 buff = new Buffer 4
                 buff.writeInt32LE uuid
                 @daemonSockets[hash][0].write buff
+
+                setTimeout =>
+                    @daemonSockets[hash][0].write buff if not @pipes[uuid]?
+                , 2000
 
                 regex = new RegExp (pregQuote reqHost), 'ig'
 
@@ -151,6 +159,9 @@ module.exports = class
             console.info "close socket #{uuid}"
             if @sockets[uuid]?
                 delete @sockets[uuid]
+
+        socket.on 'error', (err) ->
+            console.error err
         
         @dataEvent.emit 'accept', uuid
 
@@ -186,6 +197,9 @@ module.exports = class
                     else if op == 2
                         uuid = data.readInt32LE 1
                         hash = (data.slice 5).toString()
+
+                        return socket.end() if @pipes[uuid]?
+
                         @pipes[uuid] = socket
 
                         socket.on 'close', =>

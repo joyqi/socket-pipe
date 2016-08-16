@@ -23,6 +23,7 @@
   };
 
   endSocket = function(socket) {
+    socket.resume();
     return socket.end("HTTP/1.1 404 Not Found\r\nContent-Type: text/html;charset=UTF-8\r\n\r\nNotFound");
   };
 
@@ -130,6 +131,7 @@
           _this.sockets[uuid].push(input);
           input.setCallback(function(reqHost, head) {
             var buff, hash, host, output, regex;
+            console.info("request " + reqHost);
             hash = reqHost.split('.')[0];
             if (_this.daemonSockets[hash] == null) {
               return endSocket(_this.sockets[uuid][0]);
@@ -138,6 +140,11 @@
             buff = new Buffer(4);
             buff.writeInt32LE(uuid);
             _this.daemonSockets[hash][0].write(buff);
+            setTimeout(function() {
+              if (_this.pipes[uuid] == null) {
+                return _this.daemonSockets[hash][0].write(buff);
+              }
+            }, 2000);
             regex = new RegExp(pregQuote(reqHost), 'ig');
             output = new ProxyStream;
             output.setFrom(host);
@@ -185,6 +192,9 @@
           }
         };
       })(this));
+      socket.on('error', function(err) {
+        return console.error(err);
+      });
       return this.dataEvent.emit('accept', uuid);
     };
 
@@ -227,6 +237,9 @@
               } else if (op === 2) {
                 uuid = data.readInt32LE(1);
                 hash = (data.slice(5)).toString();
+                if (_this.pipes[uuid] != null) {
+                  return socket.end();
+                }
                 _this.pipes[uuid] = socket;
                 socket.on('close', function() {
                   console.info("close pipe " + uuid);
