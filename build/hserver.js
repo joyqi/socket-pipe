@@ -93,16 +93,18 @@
             head = this.cb(matches[1], head);
           }
         }
-        return callback(null, Buffer.from(head + body, 'binary'));
+        callback(null, Buffer.from(head + body, 'binary'));
       } else {
-        return callback(null, buff);
+        callback(null, buff);
+      }
+      if ((buff.indexOf(-1)) >= 0) {
+        return this.clear();
       }
     };
 
-    ProxyStream.prototype._flush = function(callback) {
+    ProxyStream.prototype.clear = function() {
       this.filtered = false;
-      this.buffers = [];
-      return callback();
+      return this.buffers = [];
     };
 
     return ProxyStream;

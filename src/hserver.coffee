@@ -75,11 +75,12 @@ class ProxyStream extends Transform
         else
             callback null, buff
 
+        @clear() if (buff.indexOf -1) >= 0
 
-    _flush: (callback) ->
+
+    clear: ->
         @filtered = no
         @buffers = []
-        callback()
 
 
 module.exports = class
