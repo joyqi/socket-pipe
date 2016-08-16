@@ -9,7 +9,18 @@ Zlib = require 'zlib'
 
 pregQuote = (str) -> str.replace /[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"
 
+endSocket = (socket) -> socket.end "HTTP/1.1 404 Not Found\r\nContent-Type: text/html;charset=UTF-8\r\n\r\nNotFound"
+
 class ProxyStream extends Transform
+
+    constructor: ->
+        @filtered = no
+        @piped = no
+        @buffers = []
+        super
+
+
+    setCallback: (@cb) ->
 
 
     setFrom: (from) ->
@@ -19,28 +30,56 @@ class ProxyStream extends Transform
     setTo: (@to) ->
 
 
-    setStatusCode: (statusCode) ->
-        @res.statusCode = statusCode
-
-    
-    setHeader: (k, v) ->
-        @res.setHeader k, if k == 'location' then (@replace v) else v
+    pipe: (@stream) ->
+        @piped = yes
+        return super
 
 
-    pipe: (@res) ->
+    resume: ->
+        if @stream?
+            while buffer = @buffers.shift()
+                @stream.write buffer
+
         super
 
-    
-    replace: (input) ->
-        if Buffer.isBuffer input
-            str = input.toString 'utf8'
-            Buffer.from (@replace str), 'utf8'
-        else
-            input.replace @from, @to
 
-    
+    callback: (err, buff) ->
+        if @piped
+            super
+        else
+            @buffers.push buff
+
+
     _transform: (buff, enc, callback) ->
-        callback null, buff
+        if not @filtered
+            str = if enc is 'buffer' then (buff.toString 'binary') else buff
+            pos = str.indexOf "\r\n\r\n"
+
+            if pos >= 0
+                @filtered = yes
+
+                head = str.substring 0, pos
+                body = str.substring pos
+            else
+                head = str
+                body = ''
+
+            if @from? and @to?
+                head = head.replace @from, @to
+
+            if matches = head.match /host:\s*([^\r]+)/i
+                head = @cb matches[1], head if @cb?
+
+            callback null, Buffer.from head + body, 'binary'
+
+        else
+            callback null, buff
+
+
+    _flush: (callback) ->
+        @filtered = no
+        @buffers = []
+        callback()
 
 
 module.exports = class
@@ -52,65 +91,72 @@ module.exports = class
         @sockets = {}
         @pipes = {}
 
-        @dataEvent.on 'pipe', (uuid, hash) =>
+        @dataEvent.on 'accept', (uuid) =>
             return if not @sockets[uuid]?
 
-            if not @pipes[uuid]?
+            input = new ProxyStream
+            @sockets[uuid].push input
+
+            input.setCallback (reqHost, head) =>
+                [hash] = reqHost.split '.'
+                if not @daemonSockets[hash]?
+                    return endSocket @sockets[uuid][0]
+
+                host = if @daemonSockets[hash][1]? then @daemonSockets[hash][1] else reqHost
                 buff = new Buffer 4
                 buff.writeInt32LE uuid
+                @daemonSockets[hash][0].write buff
 
-                return if not @daemonSockets[hash]?
-                
-                console.info "request pipe #{uuid}"
-                return @daemonSockets[hash][0].write buff
+                regex = new RegExp (pregQuote reqHost), 'ig'
 
+                output = new ProxyStream
+                output.setFrom host
+                output.setTo reqHost
 
-            host = if @daemonSockets[hash][1]? then @daemonSockets[hash][1] else @sockets[uuid][0].headers.host
-            url = 'http://' + host + @sockets[uuid][0].url
-            method = @sockets[uuid][0].method.toLowerCase()
-            
-            transform = new ProxyStream
-            transform.setFrom host
-            transform.setTo @sockets[uuid][0].headers.host
+                @sockets[uuid].push output
+                @sockets[uuid][0].pause()
 
-            Object.defineProperty transform, 'statusCode', set: transform.setStatusCode
+                head.replace regex, host
 
-            @sockets[uuid][0]
-                .pipe Request[method] url
-                .pipe transform
-                .pipe @sockets[uuid][1]
+            @sockets[uuid][0].pipe input
+            @sockets[uuid][0].resume()
 
+        @dataEvent.on 'pipe', (uuid, hash) =>
+            return if not @sockets[uuid]
+            return endSocket @sockets[uuid] if not @daemonSockets[hash]
+            return endSocket @sockets[uuid] if not @pipes[uuid]
+
+            @sockets[uuid][1].pipe @pipes[uuid]
+                .pipe @sockets[uuid][2]
+                .pipe @sockets[uuid][0]
+
+            @sockets[uuid][1].resume()
             @sockets[uuid][0].resume()
         
         @createLocalServer()
         @createRemoteServer()
 
 
-    accept: (req, res, hash) ->
-        console.info "accept #{req.headers.host}#{req.url}"
+    accept: (socket) ->
+        console.info "accept #{socket.remoteAddress}:#{socket.remotePort}"
         
         uuid = @id
         @id += 1
-        @sockets[uuid] = [req, res]
 
-        res.on 'close', =>
+        socket.pause()
+        @sockets[uuid] = [socket]
+
+        socket.on 'close', =>
             console.info "close socket #{uuid}"
             if @sockets[uuid]?
                 delete @sockets[uuid]
         
-        @dataEvent.emit 'pipe', uuid, hash
+        @dataEvent.emit 'accept', uuid
 
 
     createRemoteServer: ->
-        @remoteServer = Http.createServer (req, res) =>
-            [hash] = req.headers.host.split '.'
-            console.log hash
-
-            if @daemonSockets[hash]?
-                @accept req, res, hash
-            else
-                res.writeHead 404
-                res.end 'Not Found'
+        @remoteServer = Net.createServer (socket) =>
+            @accept socket
 
         @remoteServer.listen @remoteAddress.port, @remoteAddress.ip
 
