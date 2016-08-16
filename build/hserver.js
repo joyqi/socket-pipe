@@ -122,6 +122,31 @@
       this.daemonSockets = {};
       this.sockets = {};
       this.pipes = {};
+      this.waits = {};
+      setInterval((function(_this) {
+        return function() {
+          var buff, hash, item, now, ref, results, time, uuid;
+          now = Date.now();
+          ref = _this.waits;
+          results = [];
+          for (uuid in ref) {
+            item = ref[uuid];
+            hash = item[0], buff = item[1], time = item[2];
+            if (now - time >= 2000) {
+              item[2] = now;
+              if ((_this.pipes[uuid] == null) && (_this.sockets[uuid] != null) && (_this.daemonSockets[hash] != null)) {
+                _this.daemonSockets[hash][0].write(buff);
+                results.push(console.info("retry pipe " + uuid));
+              } else {
+                results.push(void 0);
+              }
+            } else {
+              results.push(void 0);
+            }
+          }
+          return results;
+        };
+      })(this), 1000);
       this.dataEvent.on('accept', (function(_this) {
         return function(uuid) {
           var input;
@@ -142,12 +167,7 @@
             buff.writeInt32LE(uuid);
             console.info("request pipe " + uuid);
             _this.daemonSockets[hash][0].write(buff);
-            setTimeout(function() {
-              if ((_this.pipes[uuid] == null) && (_this.sockets[uuid] != null) && (_this.daemonSockets[hash] != null)) {
-                _this.daemonSockets[hash][0].write(buff);
-                return console.info("retry pipe " + uuid);
-              }
-            }, 2000);
+            _this.waits[uuid] = [hash, buff, Date.now()];
             regex = new RegExp(pregQuote(reqHost), 'ig');
             output = new ProxyStream;
             output.setFrom(host);
@@ -162,6 +182,7 @@
       })(this));
       this.dataEvent.on('pipe', (function(_this) {
         return function(uuid, hash) {
+          delete _this.waits[uuid];
           if (!_this.sockets[uuid]) {
             return;
           }
@@ -191,7 +212,10 @@
         return function() {
           console.info("close socket " + uuid);
           if (_this.sockets[uuid] != null) {
-            return delete _this.sockets[uuid];
+            delete _this.sockets[uuid];
+          }
+          if (_this.waits[uuid] != null) {
+            return delete _this.waits[uuid];
           }
         };
       })(this));

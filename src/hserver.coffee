@@ -91,6 +91,21 @@ module.exports = class
         @daemonSockets = {}
         @sockets = {}
         @pipes = {}
+        @waits = {}
+
+        setInterval =>
+            now = Date.now()
+
+            for uuid, item of @waits
+                [hash, buff, time] = item
+
+                if now - time >= 2000
+                    item[2] = now
+
+                    if not @pipes[uuid]? and @sockets[uuid]? and @daemonSockets[hash]?
+                        @daemonSockets[hash][0].write buff
+                        console.info "retry pipe #{uuid}"
+        , 1000
 
         @dataEvent.on 'accept', (uuid) =>
             return if not @sockets[uuid]?
@@ -112,11 +127,7 @@ module.exports = class
                 console.info "request pipe #{uuid}"
                 @daemonSockets[hash][0].write buff
 
-                setTimeout =>
-                    if not @pipes[uuid]? and @sockets[uuid]? and @daemonSockets[hash]?
-                        @daemonSockets[hash][0].write buff
-                        console.info "retry pipe #{uuid}"
-                , 2000
+                @waits[uuid] = [hash, buff, Date.now()]
 
                 regex = new RegExp (pregQuote reqHost), 'ig'
 
@@ -133,6 +144,8 @@ module.exports = class
             @sockets[uuid][0].resume()
 
         @dataEvent.on 'pipe', (uuid, hash) =>
+            delete @waits[uuid]
+
             return if not @sockets[uuid]
             return endSocket @sockets[uuid] if not @daemonSockets[hash]
             return endSocket @sockets[uuid] if not @pipes[uuid]
@@ -161,6 +174,9 @@ module.exports = class
             console.info "close socket #{uuid}"
             if @sockets[uuid]?
                 delete @sockets[uuid]
+
+            if @waits[uuid]?
+                delete @waits[uuid]
 
         socket.on 'error', console.error
         
