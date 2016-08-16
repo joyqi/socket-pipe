@@ -139,8 +139,10 @@
             host = _this.daemonSockets[hash][1] != null ? _this.daemonSockets[hash][1] : reqHost;
             buff = new Buffer(4);
             buff.writeInt32LE(uuid);
+            console.info("request pipe " + uuid);
             _this.daemonSockets[hash][0].write(buff);
             setTimeout(function() {
+              console.info("retry pipe " + uuid);
               if (_this.pipes[uuid] == null) {
                 return _this.daemonSockets[hash][0].write(buff);
               }

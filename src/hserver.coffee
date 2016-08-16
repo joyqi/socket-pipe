@@ -110,9 +110,12 @@ module.exports = class
                 host = if @daemonSockets[hash][1]? then @daemonSockets[hash][1] else reqHost
                 buff = new Buffer 4
                 buff.writeInt32LE uuid
+
+                console.info "request pipe #{uuid}"
                 @daemonSockets[hash][0].write buff
 
                 setTimeout =>
+                    console.info "retry pipe #{uuid}"
                     @daemonSockets[hash][0].write buff if not @pipes[uuid]?
                 , 2000
 
