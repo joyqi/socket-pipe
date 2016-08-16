@@ -143,7 +143,7 @@
             console.info("request pipe " + uuid);
             _this.daemonSockets[hash][0].write(buff);
             setTimeout(function() {
-              if (_this.pipes[uuid] == null) {
+              if ((_this.pipes[uuid] == null) && (_this.sockets[uuid] != null) && (_this.daemonSockets[hash] != null)) {
                 _this.daemonSockets[hash][0].write(buff);
                 return console.info("retry pipe " + uuid);
               }

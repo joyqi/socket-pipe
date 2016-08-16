@@ -113,7 +113,7 @@ module.exports = class
                 @daemonSockets[hash][0].write buff
 
                 setTimeout =>
-                    if not @pipes[uuid]?
+                    if not @pipes[uuid]? and @sockets[uuid]? and @daemonSockets[hash]?
                         @daemonSockets[hash][0].write buff
                         console.info "retry pipe #{uuid}"
                 , 2000
