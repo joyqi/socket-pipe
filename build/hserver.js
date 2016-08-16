@@ -132,7 +132,7 @@
           for (uuid in ref) {
             item = ref[uuid];
             hash = item[0], buff = item[1], time = item[2];
-            if (now - time >= 2000) {
+            if (now - time >= 1000) {
               item[2] = now;
               if ((_this.pipes[uuid] == null) && (_this.sockets[uuid] != null) && (_this.daemonSockets[hash] != null)) {
                 _this.daemonSockets[hash][0].write(buff);
@@ -146,7 +146,7 @@
           }
           return results;
         };
-      })(this), 1000);
+      })(this), 200);
       this.dataEvent.on('accept', (function(_this) {
         return function(uuid) {
           var input;

@@ -99,13 +99,13 @@ module.exports = class
             for uuid, item of @waits
                 [hash, buff, time] = item
 
-                if now - time >= 2000
+                if now - time >= 1000
                     item[2] = now
 
                     if not @pipes[uuid]? and @sockets[uuid]? and @daemonSockets[hash]?
                         @daemonSockets[hash][0].write buff
                         console.info "retry pipe #{uuid}"
-        , 1000
+        , 200
 
         @dataEvent.on 'accept', (uuid) =>
             return if not @sockets[uuid]?
