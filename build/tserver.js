@@ -53,6 +53,7 @@
           }
         };
       })(this));
+      socket.on('error', console.error);
       return this.dataEvent.emit('pipe', uuid);
     };
 
@@ -62,6 +63,7 @@
           return _this.accept(socket);
         };
       })(this));
+      this.remoteServer.on('error', console.error);
       return this.remoteServer.listen(this.remoteAddress.port, this.remoteAddress.ip);
     };
 
@@ -70,6 +72,7 @@
         return function(socket) {
           var connected;
           connected = false;
+          socket.on('error', console.error);
           return socket.on('data', function(data) {
             var uuid;
             if (!connected) {
@@ -93,6 +96,7 @@
           });
         };
       })(this));
+      this.localServer.on('error', console.error);
       return this.localServer.listen(this.localAddress.port, this.localAddress.ip);
     };
 

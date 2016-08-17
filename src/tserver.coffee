@@ -45,6 +45,8 @@ module.exports = class
             if @sockets[uuid]?
                 delete @sockets[uuid]
         
+        socket.on 'error', console.error
+
         @dataEvent.emit 'pipe', uuid
 
 
@@ -52,12 +54,15 @@ module.exports = class
         @remoteServer = Net.createServer (socket) =>
             @accept socket
 
+        @remoteServer.on 'error', console.error
         @remoteServer.listen @remoteAddress.port, @remoteAddress.ip
 
 
     createLocalServer: ->
         @localServer = Net.createServer (socket) =>
             connected = no
+
+            socket.on 'error', console.error
 
             socket.on 'data', (data) =>
                 if not connected
@@ -79,6 +84,7 @@ module.exports = class
                         console.info "created pipe #{uuid}"
                         @dataEvent.emit 'pipe', uuid
 
+        @localServer.on 'error', console.error
         @localServer.listen @localAddress.port, @localAddress.ip
     
 
