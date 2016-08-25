@@ -15,7 +15,7 @@
         return client.on('error', console.error);
       });
       server.listen(localAddress.port, localAddress.ip);
-      server.on('error', server.error);
+      server.on('error', console.error);
     }
 
     return _Class;
