@@ -59,6 +59,7 @@
           }, 10000);
         };
       })(this));
+      this.daemonSocket.on('error', console.error);
       return this.daemonSocket.on('close', (function(_this) {
         return function() {
           return setTimeout(function() {

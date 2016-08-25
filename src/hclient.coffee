@@ -47,6 +47,8 @@ module.exports = class extends TClient
                 @daemonSocket.write ping
             , 10000
                 
+        @daemonSocket.on 'error', console.error
+
         # 尝试重连
         @daemonSocket.on 'close', =>
             setTimeout =>
