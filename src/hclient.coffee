@@ -16,7 +16,6 @@ module.exports = class extends TClient
         @specify = '' if not @specify?
         parts = @transfer + '|' + @specify
 
-        console.log parts
         tmp = new Buffer parts
         first = new Buffer 1 + tmp.length
         first.writeInt8 1, 0
