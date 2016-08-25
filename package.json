@@ -1,6 +1,6 @@
 {
   "name": "socket-pipe",
-  "version": "2.3.3",
+  "version": "2.4.0",
   "description": "Socket Pipe",
   "main": "index.js",
   "scripts": {
@@ -26,7 +26,6 @@
   "homepage": "https://github.com/joyqi/socket-pipe#readme",
   "dependencies": {
     "node-uuid": "^1.4.7",
-    "optimist": "^0.6.1",
-    "request": "^2.74.0"
+    "optimist": "^0.6.1"
   }
 }

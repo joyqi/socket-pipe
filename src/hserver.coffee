@@ -3,9 +3,7 @@ Net = require 'net'
 Event = require 'events'
 Http = require 'http'
 UUID = require 'node-uuid'
-Request = require 'request'
 Transform = (require 'stream').Transform
-Zlib = require 'zlib'
 
 pregQuote = (str) -> str.replace /[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"
 
