@@ -1,10 +1,12 @@
 
 Net = require 'net'
 Event = require 'events'
+EncodeStream = require './stream/encode'
+DecodeStream = require './stream/decode'
 
 module.exports = class
 
-    constructor: (@localAddress, @remoteAddress) ->
+    constructor: (@localAddress, @remoteAddress, @argv) ->
         @id = 0
         @dataEvent = new Event
         @daemonSocket = null
@@ -23,8 +25,19 @@ module.exports = class
                 console.info "request pipe #{uuid}"
                 return @daemonSocket.write buff
 
-            @sockets[uuid].pipe @pipes[uuid]
-                .pipe @sockets[uuid]
+            if @argv.c?
+                encoder = new EncodeStream
+                decoder = new DecodeStream
+
+                encoder.initCipher @argv.c, @argv.p
+                decoder.initDecipher @argv.c, @argv.p
+                @sockets[uuid].pipe encoder
+                    .pipe @pipes[uuid]
+                    .pipe decoder
+                    .pipe @sockets[uuid]
+            else
+                @sockets[uuid].pipe @pipes[uuid]
+                    .pipe @sockets[uuid]
 
             @sockets[uuid].resume()
         

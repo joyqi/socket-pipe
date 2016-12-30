@@ -4,7 +4,9 @@ TClient = require './tclient'
 
 module.exports = class extends TClient
 
-    constructor: (@localAddress, @remoteAddress, @transfer, @specify) ->
+    constructor: (@localAddress, @remoteAddress, argv) ->
+        @transfer = argv.x
+        @specify = argv.s
         @createDaemonSocket()
         @hash = null
  

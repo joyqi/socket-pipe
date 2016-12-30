@@ -1,9 +1,11 @@
 
 Net = require 'net'
+EncodeStream = require './stream/encode'
+DecodeStream = require './stream/decode'
 
 module.exports = class
     
-    constructor: (@localAddress, @remoteAddress) ->
+    constructor: (@localAddress, @remoteAddress, @argv) ->
         @createDaemonSocket()
 
 
@@ -62,12 +64,25 @@ module.exports = class
         socket = @connectRemote =>
             console.info "connect remote #{uuid}"
 
-            local = @connectLocal ->
+            local = @connectLocal =>
                 console.info "connect local #{uuid}"
                 
                 socket.write ping
-                socket.pipe local
-                    .pipe socket
+        
+                if @argv.c?
+                    encoder = new EncodeStream
+                    decoder = new DecodeStream
+
+                    encoder.initCipher @argv.c, @argv.p
+                    decoder.initDecipher @argv.c, @argv.p
+
+                    socket.pipe decoder
+                        .pipe local
+                        .pipe encoder
+                        .pipe socket
+                else
+                    socket.pipe local
+                        .pipe socket
                 
                 console.info "piped #{uuid}"
 

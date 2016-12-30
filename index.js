@@ -1,25 +1,30 @@
 
 var Opt = require('optimist'),
     Net = require('net'),
-    Udp = require('dgram')
-    Event = require('events');
-
+    Udp = require('dgram'),
+    Event = require('events'),
+    Crypto = require('crypto');
 
 var argv = Opt
-    .usage('Usage: $0 [ -l 80 ] [ -r 10.0.10.11:80 ] [ -t udp ]')
+    .usage('Usage: $0 [ -l 80 ] [ -r 10.0.10.11@80 ] [ -t udp ]')
     .demand(['l', 'r'])
     .boolean('h')
     .alias('t', 'type')
     .alias('h', 'help')
     .alias('l', 'local')
     .alias('r', 'remote')
+    .alias('c', 'crypto')
+    .alias('p', 'password')
     .alias('x', 'transfer')
     .alias('s', 'specify')
     .default('t', 'tcp')
+    .default('p', '123456')
     .describe('l', 'Local address.')
     .describe('r', 'Remote address.')
     .describe('t', 'Socket type.')
     .describe('x', 'Transfer option.')
+    .describe('c', 'Crypto cipher.')
+    .describe('p', 'Crypto password.')
     .describe('s', 'Specify option.')
     .argv;
 
@@ -68,7 +73,7 @@ function parseAddress(address) {
 }
 
 Adapter = require('./build/' + argv.t);
-new Adapter(localAddress, remoteAddress, argv.x, argv.s);
+new Adapter(localAddress, remoteAddress, argv);
 
 console.log("Piping " + localAddress.ip + "@" + localAddress.port 
     + " to " + remoteAddress.ip + "@" + remoteAddress.port + " via " + argv.t);
