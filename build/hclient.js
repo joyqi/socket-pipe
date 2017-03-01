@@ -18,6 +18,7 @@
       this.specify = argv.s;
       this.createDaemonSocket();
       this.hash = null;
+      this.token = null;
     }
 
     _Class.prototype.createDaemonSocket = function() {
@@ -29,7 +30,7 @@
       if (this.specify == null) {
         this.specify = '';
       }
-      parts = this.transfer + '|' + this.specify;
+      parts = this.transfer + '|' + this.specify + (this.token != null ? '|' + this.token : '');
       tmp = new Buffer(parts);
       first = new Buffer(1 + tmp.length);
       first.writeInt8(1, 0);
@@ -40,12 +41,13 @@
           connected = false;
           _this.daemonSocket.ref();
           _this.daemonSocket.on('data', function(data) {
-            var url, uuid;
+            var hash, ref, url, uuid;
             if (!connected) {
               connected = true;
-              _this.hash = data;
               url = data.toString('utf8');
-              return console.info("url " + url);
+              console.info("url " + url);
+              ref = url.split('|'), hash = ref[0], _this.token = ref[1];
+              return _this.hash = Buffer.from(hash);
             } else if (data.length === 4) {
               uuid = data.readInt32LE(0);
               console.info("request pipe " + uuid);

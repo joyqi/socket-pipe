@@ -9,6 +9,7 @@ module.exports = class extends TClient
         @specify = argv.s
         @createDaemonSocket()
         @hash = null
+        @token = null
  
     # 创建一个常驻的隧道
     createDaemonSocket: ->
@@ -16,7 +17,7 @@ module.exports = class extends TClient
 
         @transfer = '' if not @transfer?
         @specify = '' if not @specify?
-        parts = @transfer + '|' + @specify
+        parts = @transfer + '|' + @specify + (if @token? then '|' + @token else '')
 
         tmp = new Buffer parts
         first = new Buffer 1 + tmp.length
@@ -32,9 +33,11 @@ module.exports = class extends TClient
             @daemonSocket.on 'data', (data) =>
                 if not connected
                     connected = yes
-                    @hash = data
                     url = data.toString 'utf8'
                     console.info "url #{url}"
+
+                    [hash, @token] = url.split '|'
+                    @hash = Buffer.from hash
                 else if data.length == 4
                     uuid = data.readInt32LE 0
                     

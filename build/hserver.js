@@ -144,27 +144,30 @@
           connected = false;
           socket.on('error', console.error);
           return socket.on('data', function(data) {
-            var hash, op, parts, ref, transfer, uuid;
+            var hash, items, op, parts, token, transfer, uuid;
             if (!connected) {
               connected = true;
               op = data.readInt8(0);
               if (op === 1) {
                 parts = (data.slice(1)).toString();
-                ref = parts.split('|'), transfer = ref[0], hash = ref[1];
-                if (hash.length === 0 || (_this.daemonSockets[hash] != null)) {
+                items = parts.split('|');
+                transfer = items[0], hash = items[1];
+                token = items[2] != null ? items[2] : null;
+                if (hash.length === 0 || ((_this.daemonSockets[hash] != null) && token !== _this.daemonSockets[hash][2])) {
                   hash = UUID.v1();
                 }
                 if (transfer.length === 0) {
                   transfer = null;
                 }
                 console.info("connected " + socket.remoteAddress + ":" + socket.remotePort + " = " + hash + " " + transfer);
-                _this.daemonSockets[hash] = [socket, transfer];
+                token = UUID.v1();
+                _this.daemonSockets[hash] = [socket, transfer, token];
                 socket.on('close', function() {
                   if ((hash != null) && (_this.daemonSockets[hash] != null)) {
                     return delete _this.daemonSockets[hash];
                   }
                 });
-                return socket.write(new Buffer(hash));
+                return socket.write(new Buffer(hash + '|' + token));
               } else if (op === 2) {
                 uuid = data.readInt32LE(1);
                 hash = (data.slice(5)).toString();

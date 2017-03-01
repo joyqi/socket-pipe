@@ -131,16 +131,24 @@ module.exports = class
 
                     if op == 1
                         parts = (data.slice 1).toString()
-                        [transfer, hash] = parts.split '|'
-                        hash = UUID.v1() if hash.length == 0 or @daemonSockets[hash]?
+                        items = parts.split '|'
+                        [transfer, hash] = items
+                        token = if items[2]? then items[2] else null
+                        
+                        if hash.length == 0 or (@daemonSockets[hash]? and token != @daemonSockets[hash][2])
+                            hash = UUID.v1()
+
                         transfer = null if transfer.length == 0
                         console.info "connected #{socket.remoteAddress}:#{socket.remotePort} = #{hash} #{transfer}"
-                        @daemonSockets[hash] = [socket, transfer]
+
+                        # add token
+                        token = UUID.v1()
+                        @daemonSockets[hash] = [socket, transfer, token]
 
                         socket.on 'close', =>
                             delete @daemonSockets[hash] if hash? and @daemonSockets[hash]?
 
-                        socket.write new Buffer hash
+                        socket.write new Buffer hash + '|' + token
                     else if op == 2
                         uuid = data.readInt32LE 1
                         hash = (data.slice 5).toString()
