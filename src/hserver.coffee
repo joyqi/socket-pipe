@@ -5,6 +5,7 @@ Http = require 'http'
 UUID = require 'node-uuid'
 ProxyStream = require './stream/proxy'
 
+pregQuote = (str) -> str.replace /[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"
 
 endSocket = (socket) ->
     socket.resume()
