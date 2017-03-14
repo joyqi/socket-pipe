@@ -75,8 +75,8 @@ module.exports = class
             delete @waits[uuid]
 
             return if not @sockets[uuid]
-            return endSocket @sockets[uuid] if not @daemonSockets[hash]
-            return endSocket @sockets[uuid] if not @pipes[uuid]
+            return endSocket @sockets[uuid][0] if not @daemonSockets[hash]
+            return endSocket @sockets[uuid][0] if not @pipes[uuid]
 
             @sockets[uuid][1].pipe @pipes[uuid]
                 .pipe @sockets[uuid][2]

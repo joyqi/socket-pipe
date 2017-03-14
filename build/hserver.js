@@ -95,10 +95,10 @@
             return;
           }
           if (!_this.daemonSockets[hash]) {
-            return endSocket(_this.sockets[uuid]);
+            return endSocket(_this.sockets[uuid][0]);
           }
           if (!_this.pipes[uuid]) {
-            return endSocket(_this.sockets[uuid]);
+            return endSocket(_this.sockets[uuid][0]);
           }
           _this.sockets[uuid][1].pipe(_this.pipes[uuid]).pipe(_this.sockets[uuid][2]).pipe(_this.sockets[uuid][0]);
           _this.sockets[uuid][1].release();
