@@ -4,20 +4,18 @@ Udp = require 'dgram'
 module.exports = class
     
     constructor: (@localAddress, @remoteAddress) ->
-        @connectionPool = []
+        @connectionPool = {}
 
-        setInterval ->
+        setInterval =>
             now = Date.now()
             index = 0
 
-            for connect in connectionPool
-                break if now - connect.time < 5000
-                index += 1
-
-            for i in [0..index - 1]
-                connect = connectionPool.shift()
-                connect.socket.close()
-        , 3000
+            for key, connect of @connectionPool
+                if now - connect.time < 5000
+                    connect.socket.close()
+                    delete @connectionPool[key]
+                    console.log "close #{key}"
+        , 10000
 
         @createServer()
 
@@ -30,28 +28,39 @@ module.exports = class
 
         receiver.on 'error', console.error
 
-        receive.on 'message', (data, info) =>
-            sender = @requestUdpSocket()
+        receiver.on 'message', (data, info) =>
+            key = @requestUdpSocket info
+            sender = @connectionPool[key].socket
             client = info
             
-            sender.on 'message', (data, info) ->
+            sender.on 'message', (data, info) =>
                 console.log "response #{info.address}:#{info.port}"
-
+                
+                @connectionPool[key].time = Date.now() if typeof @connectionPool[key] != 'undefined'
                 receiver.send data, 0, data.length, client.port, client.address
 
             console.log "request #{client.address}:#{client.port}"
-            sender.send data, 0, data.length, (@requestUdpSocket @remoteAddress.port), @remoteAddress.ip
+            sender.send data, 0, data.length, (@requestUdpPort @remoteAddress.port), @remoteAddress.ip
 
 
-    requestUdpSocket: ->
+    requestUdpSocket: (info) ->
         now = Date.now()
-        socket = Udp.createSocket 'udp' + @remoteAddress.type
+        key = info.address + ':' + info.port
 
+        if typeof @connectionPool[key] != 'undefined'
+            @connectionPool[key].time = now
+            return key
+
+        socket = Udp.createSocket 'udp' + @remoteAddress.type
         socket.bind()
 
-        socket.on 'error', console.error
-        connectionPool.push {time : now, socket : socket}
-        socket
+        socket.on 'error', (err) ->
+            console.error err
+            socket.close()
+            delete @connectionPool[key]
+
+        @connectionPool[key] = {time : now, socket : socket}
+        key
 
 
     requestUdpPort: (port) ->

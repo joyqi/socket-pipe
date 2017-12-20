@@ -8,25 +8,27 @@
     function _Class(localAddress, remoteAddress) {
       this.localAddress = localAddress;
       this.remoteAddress = remoteAddress;
-      this.connectionPool = [];
-      setInterval(function() {
-        var connect, i, index, j, k, len, now, ref, results;
-        now = Date.now();
-        index = 0;
-        for (j = 0, len = connectionPool.length; j < len; j++) {
-          connect = connectionPool[j];
-          if (now - connect.time < 5000) {
-            break;
+      this.connectionPool = {};
+      setInterval((function(_this) {
+        return function() {
+          var connect, index, key, now, ref, results;
+          now = Date.now();
+          index = 0;
+          ref = _this.connectionPool;
+          results = [];
+          for (key in ref) {
+            connect = ref[key];
+            if (now - connect.time < 5000) {
+              connect.socket.close();
+              delete _this.connectionPool[key];
+              results.push(console.log("close " + key));
+            } else {
+              results.push(void 0);
+            }
           }
-          index += 1;
-        }
-        results = [];
-        for (i = k = 0, ref = index - 1; 0 <= ref ? k <= ref : k >= ref; i = 0 <= ref ? ++k : --k) {
-          connect = connectionPool.shift();
-          results.push(connect.socket.close());
-        }
-        return results;
-      }, 3000);
+          return results;
+        };
+      })(this), 10000);
       this.createServer();
     }
 
@@ -36,32 +38,45 @@
       receiver.bind(this.localAddress.port, this.localAddress.ip);
       receiver.ref();
       receiver.on('error', console.error);
-      return receive.on('message', (function(_this) {
+      return receiver.on('message', (function(_this) {
         return function(data, info) {
-          var client, sender;
-          sender = _this.requestUdpSocket();
+          var client, key, sender;
+          key = _this.requestUdpSocket(info);
+          sender = _this.connectionPool[key].socket;
           client = info;
           sender.on('message', function(data, info) {
             console.log("response " + info.address + ":" + info.port);
+            if (typeof _this.connectionPool[key] !== 'undefined') {
+              _this.connectionPool[key].time = Date.now();
+            }
             return receiver.send(data, 0, data.length, client.port, client.address);
           });
           console.log("request " + client.address + ":" + client.port);
-          return sender.send(data, 0, data.length, _this.requestUdpSocket(_this.remoteAddress.port), _this.remoteAddress.ip);
+          return sender.send(data, 0, data.length, _this.requestUdpPort(_this.remoteAddress.port), _this.remoteAddress.ip);
         };
       })(this));
     };
 
-    _Class.prototype.requestUdpSocket = function() {
-      var now, socket;
+    _Class.prototype.requestUdpSocket = function(info) {
+      var key, now, socket;
       now = Date.now();
+      key = info.address + ':' + info.port;
+      if (typeof this.connectionPool[key] !== 'undefined') {
+        this.connectionPool[key].time = now;
+        return key;
+      }
       socket = Udp.createSocket('udp' + this.remoteAddress.type);
       socket.bind();
-      socket.on('error', console.error);
-      connectionPool.push({
+      socket.on('error', function(err) {
+        console.error(err);
+        socket.close();
+        return delete this.connectionPool[key];
+      });
+      this.connectionPool[key] = {
         time: now,
         socket: socket
-      });
-      return socket;
+      };
+      return key;
     };
 
     _Class.prototype.requestUdpPort = function(port) {
